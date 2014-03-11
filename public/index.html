@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Schiffblub</title>
+  <link rel="stylesheet" href="root.css">
+</head>
+<body ng-app="root" ng-view>
+  <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+  <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+  <script src="http://code.angularjs.org/1.1.5/angular.js"></script>
+  <script src="/socket.io/lib/socket.io.js"></script>
+  <script>
+    var socket = io.connect('http://localhost:3000');
+    socket.on('list rooms', function (data) {
+      console.log(data);
+    });
+  </script>
+  <script src="root.js"></script>
+  <script src="controllers/game.js"></script>
+</body>
+</html>

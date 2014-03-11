@@ -1,0 +1,45 @@
+.wasShot {
+    background-color: #f00;
+}
+
+.error {
+    color: #f00;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+td {
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    vertical-align: middle;
+    border-color: #000;
+    border-width: 2px;
+    border-style: solid;
+}
+
+#ownTable {
+    margin-right: 40px;
+}
+
+#ownTable td {
+    background-color: #39f;
+}
+
+#opponentTable td {
+    background-color: #ccc;
+}
+
+#ownTable td.hasShip, #opponentTable td.hasShip {
+    background-color: #000;
+}
+
+#ownTable td.wasShot, #opponentTable td.wasShot {
+    background-color: #c6f;
+}
+
+#ownTable td.hasShip.wasShot, #opponentTable td.hasShip.wasShot {
+    background-color: #f00;
+}
