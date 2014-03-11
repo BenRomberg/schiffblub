@@ -40,31 +40,76 @@ server.listen(app.get('port'), function () {
 var mongoose = require('mongoose');
 mongoose.connect('mongodb://localhost/schiffblub');
 
-var Player = mongoose.model('Player', { name: String });
+var Player = mongoose.model('Player', {
+  name: { type: String, unique: true, required: true },
+  password: { type: String, required: true },
+  gamesWon: { type: Number, default: 0 },
+  gamesLost: { type: Number, default: 0 }
+});
 
 var io = socket.listen(server);
-var maxRoomId = 0;
+io.set('log level', 1);
+var games = {};
 
-var listRooms = function(receiver) {
-  receiver.emit('list rooms', io.sockets.manager.rooms);
+var Game = function(name, creator) {
+  this.name = name;
+  this.creator = creator;
+}
+
+var listGames = function (receiver) {
+  receiver.emit('list games', games);
 };
 
 io.sockets.on('connection', function (socket) {
-  listRooms(socket);
+  function handleError(message) {
+    console.log('ERROR', message);
+    socket.emit('error', message);
+  }
 
-  socket.on('login', function (name, password) {
-    socket.set('user id', name, function () {
-      socket.emit('ready');
+  function login(player) {
+    socket.set('player', player);
+    console.log('LOGGED IN', player);
+    socket.emit('logged in');
+  }
+
+  listGames(socket);
+
+  socket.on('register', function (data) {
+    var newPlayer = new Player({ name: data.name, password: data.password });
+    newPlayer.save(function (err) {
+      if (err)
+        return handleError('Error creating new player: ' + err);
+      console.log('SAVED', newPlayer);
+      login(newPlayer);
     });
   });
 
-  socket.on('create room', function (data) {
-    socket.join(++maxRoomId);
-    listRooms(socket);
-    listRooms(socket.broadcast);
-    console.log('created room ' + maxRoomId);
+  socket.on('login', function (data) {
+    Player.findOne({ 'name': data.name }, function (err, player) {
+      if (err)
+        return handleError(err);
+      if (!player)
+        return handleError('Player with name <' + data.name + '> not found.');
+      if (data.password !== player.password)
+        return handleError('Wrong password.' + data.password + player.password);
+      login(player);
+    });
   });
-  socket.on('disconnect', function() {
+
+  socket.on('create game', function (data) {
+    if (games[data.name])
+      return handleError('Game with name <' + data.name + '> already exists.');
+    socket.get('player', function(err, player) {
+      if (err)
+        return handleError('You\'re not logged in.');
+      games[data.name] = new Game(data.name, player);
+      listGames(socket);
+      listGames(socket.broadcast);
+      console.log('created game ' + data.name);
+      socket.emit('created game');
+    });
+  });
+  socket.on('disconnect', function () {
     // todo
   });
 });

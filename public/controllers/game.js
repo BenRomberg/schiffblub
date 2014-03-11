@@ -18,16 +18,11 @@ var initField = function() {
   return field;
 }
 
-function GameController($scope, $location) {
+function GameController($scope, socket) {
   $scope.own = initField();
   $scope.opponent = initField();
 
   $scope.click = function(field) {
     field.hasShip = !field.hasShip;
   };
-
-  $scope.createRoom = function() {
-    socket.emit('create room', { my: 'data' });
-  };
-
 }

@@ -1,0 +1,13 @@
+<span class="error">{{error}}</span>
+<br/><br/>
+<table>
+  <tr>
+    <th>Name</th>
+    <th>Opponent</th>
+  </tr>
+  <tr ng-repeat="game in games">
+    <td>{{game.name}}</td>
+    <td>{{game.creator.name}}</td>
+  </tr>
+</table>
+Name: <input size="10" ng-model="newGameName"/><button ng-click="createGame()">Create Game</button>

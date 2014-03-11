@@ -1,21 +1,28 @@
-function LoginController($scope, $location) {
+function LoginController($scope, socket, $location) {
+  $scope.error = '';
+
+  function sendLoginInfo(method) {
+    socket.emit(method, { name: $scope.name, password: $scope.password });
+  }
+
   $scope.login = function() {
-
+    sendLoginInfo('login');
   };
 
-  $scope.createAccount = function() {
-
+  $scope.register = function() {
+    sendLoginInfo('register');
   };
 
-  $scope.own = initField();
-  $scope.opponent = initField();
+  socket.on('error', function (message) {
+    console.log('received ', message);
+    var $error = $('.error');
+    $error.show();
+    $scope.error = message;
+    $error.delay(2000).fadeOut();
+  });
 
-  $scope.click = function(field) {
-    field.hasShip = !field.hasShip;
-  };
-
-  $scope.createRoom = function() {
-    socket.emit('create room', { my: 'data' });
-  };
+  socket.on('logged in', function() {
+    $location.path("/lobby");
+  })
 
 }
