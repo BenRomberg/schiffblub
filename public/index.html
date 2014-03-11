@@ -4,7 +4,10 @@
   <title>Schiffblub</title>
   <link rel="stylesheet" href="root.css">
 </head>
-<body ng-app="root" ng-view>
+<body ng-app="root">
+  <div ng-view></div>
+  <br/>
+  <div class="error">{{error}}</div>
   <script src="/lib/jquery-1.9.1.js"></script>
   <script src="/lib/angular-1.1.5.js"></script>
   <script src="/socket.io/lib/socket.io.js"></script>

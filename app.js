@@ -72,8 +72,6 @@ io.sockets.on('connection', function (socket) {
     socket.emit('logged in');
   }
 
-  listGames(socket);
-
   socket.on('register', function (data) {
     var newPlayer = new Player({ name: data.name, password: data.password });
     newPlayer.save(function (err) {
@@ -94,6 +92,10 @@ io.sockets.on('connection', function (socket) {
         return handleError('Wrong password.' + data.password + player.password);
       login(player);
     });
+  });
+
+  socket.on('list games', function(data) {
+    socket.emit('list games', games);
   });
 
   socket.on('create game', function (data) {

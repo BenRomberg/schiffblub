@@ -6,8 +6,14 @@ angular.module('root', [])
       .when('/game', {templateUrl: 'partials/game.html', controller: GameController})
       .otherwise({redirectTo: '/login'});
   }])
-  .run(function ($rootScope) {
-
+  .run(function ($rootScope, socket) {
+    socket.on('error', function (message) {
+      console.log('received ', message);
+      var $error = $('.error');
+      $error.show();
+      $rootScope.error = message;
+      $error.delay(2000).fadeOut();
+    });
   })
   .factory('socket', function ($rootScope) {
     var socket = io.connect('http://localhost:3000');

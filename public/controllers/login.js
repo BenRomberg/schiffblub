@@ -13,14 +13,6 @@ function LoginController($scope, socket, $location) {
     sendLoginInfo('register');
   };
 
-  socket.on('error', function (message) {
-    console.log('received ', message);
-    var $error = $('.error');
-    $error.show();
-    $scope.error = message;
-    $error.delay(2000).fadeOut();
-  });
-
   socket.on('logged in', function() {
     $location.path("/lobby");
   })
