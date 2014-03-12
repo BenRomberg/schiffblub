@@ -51,7 +51,7 @@ var io = socket.listen(server);
 io.set('log level', 1);
 var games = {};
 
-var Game = function(name, creator) {
+var Game = function (name, creator) {
   this.name = name;
   this.creator = creator;
 }
@@ -94,23 +94,43 @@ io.sockets.on('connection', function (socket) {
     });
   });
 
-  socket.on('list games', function(data) {
+  socket.on('list games', function (data) {
     socket.emit('list games', games);
   });
+
+  function broadcastGameJoined() {
+    listGames(socket.broadcast);
+    socket.emit('joined game');
+  }
 
   socket.on('create game', function (data) {
     if (games[data.name])
       return handleError('Game with name <' + data.name + '> already exists.');
-    socket.get('player', function(err, player) {
-      if (err)
-        return handleError('You\'re not logged in.');
+    withPlayer(function (player) {
       games[data.name] = new Game(data.name, player);
-      listGames(socket);
-      listGames(socket.broadcast);
-      console.log('created game ' + data.name);
-      socket.emit('created game');
+      console.log('created and joined game ' + data.name);
+      broadcastGameJoined();
     });
   });
+
+  function withPlayer(func) {
+    socket.get('player', function (err, player) {
+      if (err)
+        return handleError('You\'re not logged in.');
+      func(player);
+    });
+  }
+
+  socket.on('join game', function (data) {
+    if (!games[data.name])
+      return handleError('Game with name <' + data.name + '> not found.');
+    withPlayer(function (player) {
+      games[data.name].opponent = player;
+      console.log('joined game ' + data.name);
+      broadcastGameJoined();
+    });
+  });
+
   socket.on('disconnect', function () {
     // todo
   });

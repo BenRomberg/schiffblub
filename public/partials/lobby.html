@@ -2,10 +2,15 @@
   <tr>
     <th>Name</th>
     <th>Opponent</th>
+    <th></th>
   </tr>
   <tr ng-repeat="game in games">
     <td>{{game.name}}</td>
     <td>{{game.creator.name}}</td>
+    <td>
+      <span ng-show="game.opponent">in progress</span>
+      <button ng-show="!game.opponent" ng-click="join(game)">join</button>
+    </td>
   </tr>
 </table>
 Name: <input size="10" ng-model="newGameName"/><button ng-click="createGame()">Create Game</button>

@@ -9,4 +9,12 @@ function LobbyController($scope, socket, $location) {
     socket.emit('create game', { name: $scope.newGameName });
   };
 
+  $scope.join = function(game) {
+    socket.emit('join game', { name: game.name })
+  }
+
+  socket.on('joined game', function(data) {
+    $location.path("/game");
+  });
+
 }

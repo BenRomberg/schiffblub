@@ -10,14 +10,22 @@ table {
     border-collapse: collapse;
 }
 
+th, td {
+    padding: 4px;
+}
+
 td {
-    width: 20px;
-    height: 20px;
     text-align: center;
     vertical-align: middle;
+    white-space: nowrap;
     border-color: #000;
     border-width: 2px;
     border-style: solid;
+}
+
+#ownTable td, #opponentTable td {
+    width: 20px;
+    height: 20px;
 }
 
 #ownTable {
