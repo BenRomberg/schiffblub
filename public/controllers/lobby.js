@@ -1,4 +1,4 @@
-function LobbyController($scope, socket, $location) {
+function LobbyController($scope, $location, socket, gameService) {
   socket.emit('list games');
 
   socket.on('list games', function (data) {
@@ -14,6 +14,7 @@ function LobbyController($scope, socket, $location) {
   }
 
   socket.on('joined game', function(data) {
+    gameService.setCurrentGame(data);
     $location.path("/game");
   });
 

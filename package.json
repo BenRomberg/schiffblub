@@ -9,7 +9,7 @@
     "express": "3.5.0",
     "socket.io": "*",
     "mongoose": "*",
-    "angular": "1.1.5",
-    "jquery": "1.9.1"
+    "mocha": "*",
+    "expect": "*"
   }
 }

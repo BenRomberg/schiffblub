@@ -9,6 +9,9 @@ var http = require('http');
 var path = require('path');
 var socket = require('socket.io');
 
+var Field = require('./Field');
+var Game = require('./Game');
+
 var app = express();
 
 // all environments
@@ -51,13 +54,17 @@ var io = socket.listen(server);
 io.set('log level', 1);
 var games = {};
 
-var Game = function (name, creator) {
-  this.name = name;
-  this.creator = creator;
-}
-
 var listGames = function (receiver) {
-  receiver.emit('list games', games);
+  var gameList = [];
+  Object.keys(games).forEach(function(name) {
+    var opponent = games[name].getOpponent();
+    gameList.push({
+      name: name,
+      creatorName: games[name].getCreator().getName(),
+      opponentName: opponent ? opponent.getName() : null
+    });
+  });
+  receiver.emit('list games', gameList);
 };
 
 io.sockets.on('connection', function (socket) {
@@ -95,21 +102,21 @@ io.sockets.on('connection', function (socket) {
   });
 
   socket.on('list games', function (data) {
-    socket.emit('list games', games);
+    listGames(socket);
   });
 
-  function broadcastGameJoined() {
+  function broadcastGameJoined(game, isCreator) {
     listGames(socket.broadcast);
-    socket.emit('joined game');
+    socket.emit('joined game', getGameData(game, isCreator));
   }
 
   socket.on('create game', function (data) {
     if (games[data.name])
       return handleError('Game with name <' + data.name + '> already exists.');
     withPlayer(function (player) {
-      games[data.name] = new Game(data.name, player);
+      games[data.name] = new Game(data.name, player.name);
       console.log('created and joined game ' + data.name);
-      broadcastGameJoined();
+      broadcastGameJoined(games[data.name], true);
     });
   });
 
@@ -121,13 +128,37 @@ io.sockets.on('connection', function (socket) {
     });
   }
 
+  function getGameData(game, isCreator) {
+    return {
+      name: game.getName(),
+      own: {
+        name: getOwn().getName(),
+        field: getOwn().getField().get()
+      },
+      opponent: {
+        name: getOpponent() ? getOpponent().getName() : null,
+        field: new Field().get()
+      }
+    };
+
+    function getOwn() {
+      return isCreator ? game.getCreator() : game.getOpponent();
+    }
+
+    function getOpponent() {
+      return !isCreator ? game.getCreator() : game.getOpponent();
+    }
+  }
+
   socket.on('join game', function (data) {
     if (!games[data.name])
       return handleError('Game with name <' + data.name + '> not found.');
     withPlayer(function (player) {
-      games[data.name].opponent = player;
+      if (player.name === games[data.name].getCreator().getName())
+        return handleError('Cannot join your own game.');
+      games[data.name].setOpponentName(player.name);
       console.log('joined game ' + data.name);
-      broadcastGameJoined();
+      broadcastGameJoined(games[data.name], false);
     });
   });
 

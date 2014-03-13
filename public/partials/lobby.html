@@ -6,10 +6,10 @@
   </tr>
   <tr ng-repeat="game in games">
     <td>{{game.name}}</td>
-    <td>{{game.creator.name}}</td>
+    <td>{{game.creatorName}}</td>
     <td>
-      <span ng-show="game.opponent">in progress</span>
-      <button ng-show="!game.opponent" ng-click="join(game)">join</button>
+      <span ng-show="game.opponentName">in progress</span>
+      <button ng-show="!game.opponentName" ng-click="join(game)">join</button>
     </td>
   </tr>
 </table>

@@ -8,7 +8,6 @@ angular.module('root', [])
   }])
   .run(function ($rootScope, socket) {
     socket.on('error', function (message) {
-      console.log('received ', message);
       var $error = $('.error');
       $error.show();
       $rootScope.error = message;
@@ -35,6 +34,18 @@ angular.module('root', [])
             }
           });
         })
+      }
+    };
+  })
+  .service('gameService', function () {
+    var currentGame = null;
+
+    return {
+      setCurrentGame: function (game) {
+        currentGame = game;
+      },
+      getCurrentGame: function () {
+        return currentGame;
       }
     };
   });
