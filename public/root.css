@@ -33,11 +33,15 @@ td {
 }
 
 #ownTable td, #opponentTable td.wasShot {
-    background-color: #39f;
+    background-color: #9cf;
 }
 
 #opponentTable td {
     background-color: #ccc;
+}
+
+#ownTable td.wasShot {
+    background-color: #06f;
 }
 
 #ownTable td.hasShip {

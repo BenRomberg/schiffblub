@@ -1,3 +1,4 @@
+<div><a href="#/login">Logout</a></div><br/>
 <table>
   <tr>
     <th>Name</th>
@@ -10,8 +11,7 @@
     <td>{{game.creatorName}}</td>
     <td>{{game.opponentName}}</td>
     <td>
-      <span ng-show="game.opponentName">in progress</span>
-      <button ng-show="!game.opponentName" ng-click="join(game)">join</button>
+      <button ng-click="join(game)">join</button>
     </td>
   </tr>
 </table>

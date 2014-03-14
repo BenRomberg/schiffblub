@@ -99,10 +99,14 @@ io.sockets.on('connection', function (socket) {
     listGames(socket);
   });
 
+  function sendGameJoined(game, playerField) {
+    socket.emit('joined game', getGameData(game, playerField));
+  }
+
   function broadcastGameJoined(game, playerField) {
     listGames(socket.broadcast);
     socket.join(game.getName());
-    socket.emit('joined game', getGameData(game, playerField));
+    sendGameJoined(game, playerField);
   }
 
   socket.on('create game', function (gameName) {
@@ -145,6 +149,8 @@ io.sockets.on('connection', function (socket) {
   function getGameData(game, playerField) {
     var opponent = game.getOpponent(playerField);
     return {
+      active: game.isActive(playerField),
+      gameOver: game.isGameOver(),
       name: game.getName(),
       own: {
         name: playerField.getName(),
@@ -153,7 +159,7 @@ io.sockets.on('connection', function (socket) {
       },
       opponent: {
         name: opponent ? opponent.getName() : null,
-        field: new Field().get(),
+        field: opponent ? opponent.getField().filterShot() : null,
         ready: opponent ? opponent.isReady() : false
       }
     };
@@ -172,8 +178,13 @@ io.sockets.on('connection', function (socket) {
     withPlayer(function (player) {
       var game = getGame(gameName);
       if (!game) return;
-      if (player.name === game.getCreator().getName())
-        return handleError('Cannot join your own game.');
+      var existingPlayerField = game.getPlayerField(player.name);
+      if (existingPlayerField !== null) {
+        sendGameJoined(game, existingPlayerField);
+        return;
+      }
+      if (game.getVisitor() !== null)
+        return handleError('Game is full.');
       game.setVisitorName(player.name);
       console.log('joined game ' + gameName);
       broadcastGameJoined(game, game.getVisitor());
@@ -198,13 +209,22 @@ io.sockets.on('connection', function (socket) {
     });
   });
 
-  socket.on('shoot', function (data, callback) {
+  socket.on('shoot', function (data) {
     withPlayerAndGame(data.name, function (playerField, game) {
-      var shotField = game.getOpponent(playerField).getField().get()[data.y][data.x];
-      if (shotField.wasShot)
-        return handleError('Cannot shoot a location that was already shot.');
-      shotField.wasShot = true;
-      callback(shotField);
+      if (game.isGameOver())
+        return handleError('The game is over.');
+      if (!game.getCreator().isReady() || game.getVisitor() === null || !game.getVisitor().isReady())
+        return handleError('The game hasn\'t started.');
+      if (!game.isActive(playerField))
+        return handleError('It\'s not your turn.');
+      var shotField;
+      try {
+        shotField = game.shoot(data.x, data.y);
+      } catch (e) {
+        return handleError(e);
+      }
+      refreshGame(socket, game, playerField);
+      broadcastGameRoom(game, game.getOpponent(playerField));
     });
   });
 
