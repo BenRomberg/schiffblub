@@ -11,8 +11,7 @@ var GameController = function(socket, environment) {
   socket.on('ready', function (gameName) {
     withPlayerAndGame(gameName, function (playerField, game) {
       playerField.confirmReady();
-      environment.refreshGame(socket, game, playerField);
-      environment.broadcastGameRoom(game, game.getOpponent(playerField));
+      refreshAndBroadcastGame(game, playerField);
     });
   });
 
@@ -27,14 +26,22 @@ var GameController = function(socket, environment) {
       } catch (e) {
         return environment.handleError(e);
       }
+      handleGameOver(game);
+      refreshAndBroadcastGame(game, playerField);
+    });
+
+    function handleGameOver(game) {
       if (game.isGameOver()) {
         environment.removeGame(game);
         environment.listGames(socket.broadcast);
       }
-      environment.refreshGame(socket, game, playerField);
-      environment.broadcastGameRoom(game, game.getOpponent(playerField));
-    });
+    }
   });
+
+  function refreshAndBroadcastGame(game, playerField) {
+    environment.refreshGame(socket, game, playerField);
+    environment.broadcastGameRoom(game, game.getOpponent(playerField));
+  }
 
   function withPlayerAndGame(gameName, func) {
     environment.withPlayer(function (player) {
