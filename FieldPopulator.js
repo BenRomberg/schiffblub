@@ -2,6 +2,9 @@ var FieldPopulator = function (field, ship) {
   var size = field.length;
 
   this.populate = function () {
+    if (!this.isPositionAvailable()) {
+      throw 'no position available';
+    }
     var positionFound = false, position;
     while (!positionFound) {
       positionFound = true;
@@ -22,6 +25,24 @@ var FieldPopulator = function (field, ship) {
     }
     return true;
   };
+
+  this.isPositionAvailable = function() {
+    for (var dirIndex = 0; dirIndex < 2; dirIndex++) {
+      var multX = dirIndex;
+      var multY = 1 - dirIndex;
+      for (var initX = 0; initX < size - multX * (ship - 1); initX++) {
+        for (var initY = 0; initY < size - multY * (ship - 1); initY++) {
+          if (this.isShipPositionFree({
+            multX: multX,
+            multY: multY,
+            initX: initX,
+            initY: initY
+          })) return true;
+        }
+      }
+    }
+    return false;
+  }
 
   function getRandomShipPosition() {
     var dir = Math.random() < 0.5;

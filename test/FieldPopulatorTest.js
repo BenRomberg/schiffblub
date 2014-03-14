@@ -133,6 +133,13 @@ describe('FieldPopulator', function () {
       populator.populate();
       expect(fieldToString(field)).toBe('ooox oxox oooo ooxo');
     });
+
+    it('should be able to abort if there is no possibility', function() {
+      var field = initField(2);
+      field[0][0].hasShip = true;
+      var populator = new FieldPopulator(field, 1);
+      expect(populator.populate).toThrow('no position available');
+    });
   });
 
   function initField(size) {
