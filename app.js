@@ -8,9 +8,11 @@ var user = require('./routes/user');
 var http = require('http');
 var path = require('path');
 var socket = require('socket.io');
+var mongoose = require('mongoose');
 
 var Field = require('./Field');
 var Game = require('./Game');
+var Player = require('./Player');
 
 var app = express();
 
@@ -40,15 +42,7 @@ server.listen(app.get('port'), function () {
   console.log('Express server listening on port ' + app.get('port'));
 });
 
-var mongoose = require('mongoose');
 mongoose.connect('mongodb://localhost/schiffblub');
-
-var Player = mongoose.model('Player', {
-  name: { type: String, unique: true, required: true },
-  password: { type: String, required: true },
-  gamesWon: { type: Number, default: 0 },
-  gamesLost: { type: Number, default: 0 }
-});
 
 var io = socket.listen(server);
 io.set('log level', 1);
@@ -110,19 +104,27 @@ io.sockets.on('connection', function (socket) {
     socket.emit('joined game', getGameData(game, isCreator));
   }
 
-  socket.on('create game', function (data) {
-    if (games[data.name])
-      return handleError('Game with name <' + data.name + '> already exists.');
+  socket.on('create game', function (gameName) {
+    if (games[gameName])
+      return handleError('Game with name <' + gameName + '> already exists.');
     withPlayer(function (player) {
-      games[data.name] = new Game(data.name, player.name);
-      console.log('created and joined game ' + data.name);
-      broadcastGameJoined(games[data.name], true);
+      games[gameName] = new Game(gameName, player.name);
+      console.log('created and joined game ' + gameName);
+      broadcastGameJoined(games[gameName], true);
     });
   });
 
+  function withPlayerAndGame(gameName, func) {
+    withPlayer(function(player) {
+      if (!games[gameName])
+        return handleError('Game with name <' + gameName + '> not found.');
+      func(player, games[gameName]);
+    });
+  }
+
   function withPlayer(func) {
     socket.get('player', function (err, player) {
-      if (err)
+      if (err || !player)
         return handleError('You\'re not logged in.');
       func(player);
     });
@@ -150,17 +152,31 @@ io.sockets.on('connection', function (socket) {
     }
   }
 
-  socket.on('join game', function (data) {
-    if (!games[data.name])
-      return handleError('Game with name <' + data.name + '> not found.');
-    withPlayer(function (player) {
-      if (player.name === games[data.name].getCreator().getName())
+  socket.on('join game', function (gameName) {
+    withPlayerAndGame(gameName, function (player, game) {
+      if (player.name === game.getCreator().getName())
         return handleError('Cannot join your own game.');
-      games[data.name].setOpponentName(player.name);
-      console.log('joined game ' + data.name);
-      broadcastGameJoined(games[data.name], false);
+      game.setOpponentName(player.name);
+      console.log('joined game ' + gameName);
+      broadcastGameJoined(game, false);
     });
   });
+
+  socket.on('shoot', function(data, callback) {
+    withPlayerAndGame(data.name, function(player, game) {
+      var shotField = getOpponent(game, player).getField().get()[data.y][data.x];
+      if (shotField.wasShot)
+        return handleError('Cannot shoot a location that was already shot.');
+      shotField.wasShot = true;
+      callback(shotField);
+    });
+  });
+
+  function getOpponent(game, player) {
+    if (game.getCreator().getName() === player.name)
+      return game.getOpponent();
+    return game.getCreator();
+  }
 
   socket.on('disconnect', function () {
     // todo

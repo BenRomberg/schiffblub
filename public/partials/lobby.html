@@ -1,12 +1,14 @@
 <table>
   <tr>
     <th>Name</th>
+    <th>Creator</th>
     <th>Opponent</th>
     <th></th>
   </tr>
   <tr ng-repeat="game in games">
     <td>{{game.name}}</td>
     <td>{{game.creatorName}}</td>
+    <td>{{game.opponentName}}</td>
     <td>
       <span ng-show="game.opponentName">in progress</span>
       <button ng-show="!game.opponentName" ng-click="join(game)">join</button>

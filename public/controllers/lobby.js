@@ -6,12 +6,12 @@ function LobbyController($scope, $location, socket, gameService) {
   });
 
   $scope.createGame = function() {
-    socket.emit('create game', { name: $scope.newGameName });
+    socket.emit('create game', $scope.newGameName);
   };
 
   $scope.join = function(game) {
-    socket.emit('join game', { name: game.name })
-  }
+    socket.emit('join game', game.name);
+  };
 
   socket.on('joined game', function(data) {
     gameService.setCurrentGame(data);

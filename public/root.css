@@ -32,7 +32,7 @@ td {
     margin-right: 40px;
 }
 
-#ownTable td {
+#ownTable td, #opponentTable td.wasShot {
     background-color: #39f;
 }
 
@@ -40,12 +40,8 @@ td {
     background-color: #ccc;
 }
 
-#ownTable td.hasShip, #opponentTable td.hasShip {
-    background-color: #000;
-}
-
-#ownTable td.wasShot, #opponentTable td.wasShot {
-    background-color: #c6f;
+#ownTable td.hasShip {
+    background-color: #333;
 }
 
 #ownTable td.hasShip.wasShot, #opponentTable td.hasShip.wasShot {

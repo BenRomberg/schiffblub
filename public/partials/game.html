@@ -2,7 +2,7 @@
   {{game.own.name}}:
   <table id="ownTable">
     <tr ng-repeat="row in game.own.field">
-      <td ng-repeat="field in row" ng-class="{'wasShot': field.wasShot, 'hasShip': field.hasShip}" ng-click="click(field)">
+      <td ng-repeat="field in row" ng-class="{'wasShot': field.wasShot, 'hasShip': field.hasShip}">
       </td>
     </tr>
   </table>
@@ -11,7 +11,7 @@
   {{game.opponent.name}}:
   <table id="opponentTable">
     <tr ng-repeat="row in game.opponent.field">
-      <td ng-repeat="field in row" ng-class="{'wasShot': field.wasShot, 'hasShip': field.hasShip}" ng-click="click(field)">
+      <td ng-repeat="field in row" ng-class="{'wasShot': field.wasShot, 'hasShip': field.hasShip}" ng-click="shoot(field)">
       </td>
     </tr>
   </table>
