@@ -3,8 +3,6 @@
  */
 
 var express = require('express');
-var routes = require('./routes');
-var user = require('./routes/user');
 var http = require('http');
 var path = require('path');
 var socket = require('socket.io');
@@ -34,8 +32,6 @@ if ('development' == app.get('env')) {
 app.get('/', function (req, res) {
   res.sendfile(__dirname + '/public/index.html');
 });
-//app.get('/', routes.index);
-app.get('/users', user.list);
 
 var server = http.createServer(app);
 server.listen(app.get('port'), function () {
@@ -48,40 +44,7 @@ var io = socket.listen(server);
 io.set('log level', 1);
 var games = {};
 
-var listGames = function (receiver) {
-  var gameList = [];
-  Object.keys(games).forEach(function (name) {
-    var opponent = games[name].getVisitor();
-    var creator = games[name].getCreator();
-    gameList.push({
-      name: name,
-      creator: {
-        name: creator.getName(),
-        won: creator.getPlayer().gamesWon,
-        lost: creator.getPlayer().gamesLost
-      },
-      opponent: opponent ? {
-        name: opponent.getName(),
-        won: opponent.getPlayer().gamesWon,
-        lost: opponent.getPlayer().gamesLost
-      } : null
-    });
-  });
-  receiver.emit('list games', gameList);
-};
-
 io.sockets.on('connection', function (socket) {
-  function handleError(message) {
-    console.log('ERROR', message);
-    socket.emit('error', message);
-  }
-
-  function login(player) {
-    socket.set('player', player);
-    console.log('LOGGED IN', player);
-    socket.emit('logged in');
-  }
-
   socket.on('register', function (data) {
     var newPlayer = new Player({ name: data.name, password: data.password });
     newPlayer.save(function (err) {
@@ -108,16 +71,6 @@ io.sockets.on('connection', function (socket) {
     listGames(socket);
   });
 
-  function sendGameJoined(game, playerField) {
-    socket.join(game.getName());
-    socket.emit('joined game', getGameData(game, playerField));
-  }
-
-  function broadcastGameJoined(game, playerField) {
-    listGames(socket.broadcast);
-    sendGameJoined(game, playerField);
-  }
-
   socket.on('create game', function (gameName) {
     if (games[gameName])
       return handleError('Game with name <' + gameName + '> already exists.');
@@ -127,6 +80,71 @@ io.sockets.on('connection', function (socket) {
       broadcastGameJoined(games[gameName], games[gameName].getCreator());
     });
   });
+
+  socket.on('join game', function (gameName) {
+    withPlayer(function (player) {
+      var game = getGame(gameName);
+      if (!game) return;
+      var existingPlayerField = game.getPlayerField(player.name);
+      if (existingPlayerField !== null) {
+        sendGameJoined(game, existingPlayerField);
+        return;
+      }
+      if (game.getVisitor() !== null)
+        return handleError('Game is full.');
+      game.setVisitorPlayer(player);
+      console.log('joined game ' + gameName);
+      broadcastGameJoined(game, game.getVisitor());
+      broadcastGameRoom(game, game.getCreator());
+    });
+  });
+
+  socket.on('repopulate', function (gameName) {
+    withPlayerAndGame(gameName, function (playerField, game) {
+      if (playerField.isReady())
+        return handleError('Cannot repopulate after you\'re ready.');
+      playerField.repopulate();
+      refreshGame(socket, game, playerField);
+    });
+  });
+
+  socket.on('ready', function (gameName) {
+    withPlayerAndGame(gameName, function (playerField, game) {
+      playerField.confirmReady();
+      refreshGame(socket, game, playerField);
+      broadcastGameRoom(game, game.getOpponent(playerField));
+    });
+  });
+
+  socket.on('shoot', function (data) {
+    withPlayerAndGame(data.name, function (playerField, game) {
+      if (!game.getCreator().isReady() || game.getVisitor() === null || !game.getVisitor().isReady())
+        return handleError('The game hasn\'t started.');
+      if (!game.isActive(playerField))
+        return handleError('It\'s not your turn.');
+      try {
+        game.shoot(data.x, data.y);
+      } catch (e) {
+        return handleError(e);
+      }
+      if (game.isGameOver()) {
+        delete games[game.getName()];
+        listGames(socket.broadcast);
+      }
+      refreshGame(socket, game, playerField);
+      broadcastGameRoom(game, game.getOpponent(playerField));
+    });
+  });
+
+  function sendGameJoined(game, playerField) {
+    socket.join(game.getName());
+    socket.emit('joined game', getGameData(game, playerField));
+  }
+
+  function broadcastGameJoined(game, playerField) {
+    listGames(socket.broadcast);
+    sendGameJoined(game, playerField);
+  }
 
   function getGame(gameName) {
     if (!games[gameName]) {
@@ -187,63 +205,36 @@ io.sockets.on('connection', function (socket) {
       refreshGame(socket.broadcast.to(game.getName()), game, playerField);
   }
 
-  socket.on('join game', function (gameName) {
-    withPlayer(function (player) {
-      var game = getGame(gameName);
-      if (!game) return;
-      var existingPlayerField = game.getPlayerField(player.name);
-      if (existingPlayerField !== null) {
-        sendGameJoined(game, existingPlayerField);
-        return;
-      }
-      if (game.getVisitor() !== null)
-        return handleError('Game is full.');
-      game.setVisitorPlayer(player);
-      console.log('joined game ' + gameName);
-      broadcastGameJoined(game, game.getVisitor());
-      broadcastGameRoom(game, game.getCreator());
+  function listGames(receiver) {
+    var gameList = [];
+    Object.keys(games).forEach(function (name) {
+      var opponent = games[name].getVisitor();
+      var creator = games[name].getCreator();
+      gameList.push({
+        name: name,
+        creator: {
+          name: creator.getName(),
+          won: creator.getPlayer().gamesWon,
+          lost: creator.getPlayer().gamesLost
+        },
+        opponent: opponent ? {
+          name: opponent.getName(),
+          won: opponent.getPlayer().gamesWon,
+          lost: opponent.getPlayer().gamesLost
+        } : null
+      });
     });
-  });
+    receiver.emit('list games', gameList);
+  }
 
-  socket.on('repopulate', function (gameName) {
-    withPlayerAndGame(gameName, function (playerField, game) {
-      if (playerField.isReady())
-        return handleError('Cannot repopulate after you\'re ready.');
-      playerField.repopulate();
-      refreshGame(socket, game, playerField);
-    });
-  });
+  function handleError(message) {
+    console.log('ERROR', message);
+    socket.emit('error', message);
+  }
 
-  socket.on('ready', function (gameName) {
-    withPlayerAndGame(gameName, function (playerField, game) {
-      playerField.confirmReady();
-      refreshGame(socket, game, playerField);
-      broadcastGameRoom(game, game.getOpponent(playerField));
-    });
-  });
-
-  socket.on('shoot', function (data) {
-    withPlayerAndGame(data.name, function (playerField, game) {
-      if (!game.getCreator().isReady() || game.getVisitor() === null || !game.getVisitor().isReady())
-        return handleError('The game hasn\'t started.');
-      if (!game.isActive(playerField))
-        return handleError('It\'s not your turn.');
-      var shotField;
-      try {
-        shotField = game.shoot(data.x, data.y);
-      } catch (e) {
-        return handleError(e);
-      }
-      if (game.isGameOver()) {
-        delete games[game.getName()];
-        listGames(socket.broadcast);
-      }
-      refreshGame(socket, game, playerField);
-      broadcastGameRoom(game, game.getOpponent(playerField));
-    });
-  });
-
-  socket.on('disconnect', function () {
-    // todo
-  });
+  function login(player) {
+    socket.set('player', player);
+    console.log('LOGGED IN', player);
+    socket.emit('logged in');
+  }
 });
