@@ -1,7 +1,7 @@
 <div><a href="#/lobby">Lobby</a> - <a href="#/login">Logout</a></div><br/>
 <div>{{status}}</div><br/>
 <div style="float: left">
-  {{game.own.name}}:
+  {{game.own.name}} ({{game.own.won}}:{{game.own.lost}}):
   <table id="ownTable">
     <tr ng-repeat="row in game.own.field">
       <td ng-repeat="field in row" ng-class="{'wasShot': field.wasShot, 'hasShip': field.hasShip}">
@@ -15,7 +15,7 @@
   <div ng-show="game.own.ready">ready</div>
 </div>
 <div>
-  <span ng-show="game.opponent.name">{{game.opponent.name}}:
+  <span ng-show="game.opponent">{{game.opponent.name}} ({{game.opponent.won}}:{{game.opponent.lost}}):
     <table id="opponentTable">
       <tr ng-repeat="row in game.opponent.field">
         <td ng-repeat="field in row" ng-class="{'wasShot': field.wasShot, 'hasShip': field.hasShip}"

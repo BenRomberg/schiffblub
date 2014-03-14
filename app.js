@@ -52,10 +52,19 @@ var listGames = function (receiver) {
   var gameList = [];
   Object.keys(games).forEach(function (name) {
     var opponent = games[name].getVisitor();
+    var creator = games[name].getCreator();
     gameList.push({
       name: name,
-      creatorName: games[name].getCreator().getName(),
-      opponentName: opponent ? opponent.getName() : null
+      creator: {
+        name: creator.getName(),
+        won: creator.getPlayer().gamesWon,
+        lost: creator.getPlayer().gamesLost
+      },
+      opponent: opponent ? {
+        name: opponent.getName(),
+        won: opponent.getPlayer().gamesWon,
+        lost: opponent.getPlayer().gamesLost
+      } : null
     });
   });
   receiver.emit('list games', gameList);
@@ -100,12 +109,12 @@ io.sockets.on('connection', function (socket) {
   });
 
   function sendGameJoined(game, playerField) {
+    socket.join(game.getName());
     socket.emit('joined game', getGameData(game, playerField));
   }
 
   function broadcastGameJoined(game, playerField) {
     listGames(socket.broadcast);
-    socket.join(game.getName());
     sendGameJoined(game, playerField);
   }
 
@@ -113,7 +122,7 @@ io.sockets.on('connection', function (socket) {
     if (games[gameName])
       return handleError('Game with name <' + gameName + '> already exists.');
     withPlayer(function (player) {
-      games[gameName] = new Game(gameName, player.name);
+      games[gameName] = new Game(gameName, player);
       console.log('created and joined game ' + gameName);
       broadcastGameJoined(games[gameName], games[gameName].getCreator());
     });
@@ -155,13 +164,17 @@ io.sockets.on('connection', function (socket) {
       own: {
         name: playerField.getName(),
         field: playerField.getField().get(),
-        ready: playerField.isReady()
+        ready: playerField.isReady(),
+        won: playerField.getPlayer().gamesWon,
+        lost: playerField.getPlayer().gamesLost
       },
-      opponent: {
-        name: opponent ? opponent.getName() : null,
-        field: opponent ? opponent.getField().filterShot() : null,
-        ready: opponent ? opponent.isReady() : false
-      }
+      opponent: opponent ? {
+        name: opponent.getName(),
+        field: opponent.getField().filterShot(),
+        ready: opponent.isReady(),
+        won: opponent.getPlayer().gamesWon,
+        lost: opponent.getPlayer().gamesLost
+      } : null
     };
   }
 
@@ -185,7 +198,7 @@ io.sockets.on('connection', function (socket) {
       }
       if (game.getVisitor() !== null)
         return handleError('Game is full.');
-      game.setVisitorName(player.name);
+      game.setVisitorPlayer(player);
       console.log('joined game ' + gameName);
       broadcastGameJoined(game, game.getVisitor());
       broadcastGameRoom(game, game.getCreator());
@@ -211,8 +224,6 @@ io.sockets.on('connection', function (socket) {
 
   socket.on('shoot', function (data) {
     withPlayerAndGame(data.name, function (playerField, game) {
-      if (game.isGameOver())
-        return handleError('The game is over.');
       if (!game.getCreator().isReady() || game.getVisitor() === null || !game.getVisitor().isReady())
         return handleError('The game hasn\'t started.');
       if (!game.isActive(playerField))
@@ -222,6 +233,10 @@ io.sockets.on('connection', function (socket) {
         shotField = game.shoot(data.x, data.y);
       } catch (e) {
         return handleError(e);
+      }
+      if (game.isGameOver()) {
+        delete games[game.getName()];
+        listGames(socket.broadcast);
       }
       refreshGame(socket, game, playerField);
       broadcastGameRoom(game, game.getOpponent(playerField));

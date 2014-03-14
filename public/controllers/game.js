@@ -7,7 +7,7 @@ function GameController($scope, socket, gameService) {
   };
 
   function getStatus(game) {
-    if (game.opponent.name === null)
+    if (game.opponent === null)
       return 'Waiting for opponent';
     if (!game.own.ready || !game.opponent.ready)
       return 'Waiting for both players to be ready';

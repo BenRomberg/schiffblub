@@ -8,8 +8,9 @@
   </tr>
   <tr ng-repeat="game in games">
     <td>{{game.name}}</td>
-    <td>{{game.creatorName}}</td>
-    <td>{{game.opponentName}}</td>
+    <td>{{game.creator.name}} ({{game.creator.won}}:{{game.creator.lost}})</td>
+    <td ng-show="{{game.opponent}}">{{game.opponent.name}} ({{game.opponent.won}}:{{game.opponent.lost}})</td>
+    <td ng-show="{{!game.opponent}}"></td>
     <td>
       <button ng-click="join(game)">join</button>
     </td>
