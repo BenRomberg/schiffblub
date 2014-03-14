@@ -2,10 +2,10 @@ var Box = require('./Box');
 var FieldPopulator = require('./FieldPopulator');
 
 var Field = function () {
-  //var SIZE = 10;
-  //var SHIPS = [5, 4, 4, 3, 3, 3, 2, 2, 2, 2];
-  var SIZE = 4;
-  var SHIPS = [2];
+  var SIZE = 10;
+  var SHIPS = [5, 4, 4, 3, 3, 3, 2, 2, 2, 2];
+  //var SIZE = 4;
+  //var SHIPS = [2];
 
   var field;
   initializeField();
